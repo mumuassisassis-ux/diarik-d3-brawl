@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diarik d3 Brawl</title>
+<link href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --purple-deep: #0d0010;
+  --purple-accent: #7c00cc;
+  --purple-bright: #a020f0;
+  --purple-glow: #bf5fff;
+  --gold: #ffd700;
+  --silver: #c0c0c0;
+  --bronze: #cd7f32;
+  --green-ok: #00e676;
+  --red-err: #ff4444;
+  --text: #e8d5ff;
+  --text-dim: #9966bb;
+  --border: #4a0080;
+  --card-bg: rgba(30,0,48,0.85);
+  --glow: 0 0 20px rgba(160,32,240,0.4);
+  --glow-strong: 0 0 40px rgba(160,32,240,0.7);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--purple-deep);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:16px;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 50%,rgba(124,0,204,0.15) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(160,32,240,0.1) 0%,transparent 50%);pointer-events:none;z-index:0;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--purple-deep);}
+::-webkit-scrollbar-thumb{background:var(--purple-accent);border-radius:3px;}
+#app{position:relative;z-index:1;min-height:100vh;}
+.screen{display:none;min-height:100vh;padding:20px;}
+.screen.active{display:flex;flex-direction:column;align-items:center;}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:28px;box-shadow:var(--glow);backdrop-filter:blur(10px);width:100%;max-width:480px;}
+.card-wide{max-width:960px;}
+.site-header{text-align:center;margin-bottom:28px;padding-top:20px;}
+.site-title{font-family:'Metal Mania',cursive;font-size:clamp(2rem,6vw,3.5rem);color:var(--purple-bright);text-shadow:0 0 30px var(--purple-bright),0 0 60px var(--purple-accent);letter-spacing:4px;line-height:1.1;}
+.site-subtitle{color:var(--purple-glow);font-size:0.9rem;letter-spacing:6px;text-transform:uppercase;margin-top:6px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:0.82rem;color:var(--purple-glow);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:600;}
+.form-group input{width:100%;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:1rem;transition:border-color .2s,box-shadow .2s;outline:none;}
+.form-group input:focus{border-color:var(--purple-bright);box-shadow:0 0 12px rgba(160,32,240,0.3);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 28px;border-radius:8px;border:none;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .2s;width:100%;}
+.btn-primary{background:linear-gradient(135deg,var(--purple-accent),var(--purple-bright));color:#fff;box-shadow:0 4px 20px rgba(160,32,240,0.4);}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(160,32,240,0.6);}
+.btn-secondary{background:transparent;color:var(--purple-glow);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--purple-bright);color:var(--purple-bright);}
+.btn-danger{background:rgba(255,44,44,0.15);color:var(--red-err);border:1px solid rgba(255,44,44,0.3);}
+.btn-danger:hover{background:rgba(255,44,44,0.3);}
+.btn-success{background:rgba(0,230,118,0.15);color:var(--green-ok);border:1px solid rgba(0,230,118,0.3);}
+.btn-success:hover{background:rgba(0,230,118,0.25);}
+.btn-gold{background:linear-gradient(135deg,#b8860b,var(--gold));color:#000;font-weight:700;}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(255,215,0,0.4);}
+.btn-sm{padding:8px 14px;font-size:0.8rem;width:auto;}
+.btn-xs{padding:5px 10px;font-size:0.75rem;width:auto;}
+.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+.tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(0,0,0,0.3);border-radius:10px;padding:4px;flex-wrap:wrap;}
+.tab-btn{flex:1;min-width:80px;padding:10px;background:transparent;border:none;border-radius:8px;color:var(--text-dim);cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.85rem;font-weight:600;letter-spacing:1px;transition:all .2s;}
+.tab-btn.active{background:var(--purple-accent);color:#fff;box-shadow:0 2px 12px rgba(160,32,240,0.4);}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.badge-pending{background:rgba(255,193,7,0.15);color:#ffc107;border:1px solid rgba(255,193,7,0.3);}
+.badge-approved{background:rgba(0,230,118,0.15);color:var(--green-ok);border:1px solid rgba(0,230,118,0.3);}
+.badge-banned{background:rgba(255,44,44,0.15);color:var(--red-err);border:1px solid rgba(255,44,44,0.3);}
+.badge-waiting{background:rgba(160,32,240,0.15);color:var(--purple-glow);border:1px solid var(--border);}
+.podium-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+.podium-card{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center;min-width:110px;flex:1;max-width:180px;}
+.podium-card.gold{border-color:var(--gold);box-shadow:0 0 20px rgba(255,215,0,0.25);}
+.podium-card.silver{border-color:var(--silver);box-shadow:0 0 15px rgba(192,192,192,0.2);}
+.podium-card.bronze{border-color:var(--bronze);box-shadow:0 0 15px rgba(205,127,50,0.2);}
+.podium-pos{font-size:1.5rem;margin-bottom:4px;}
+.podium-name{font-family:'Metal Mania',cursive;font-size:0.85rem;color:var(--text);}
+.podium-kills{font-size:1.4rem;font-weight:700;color:var(--purple-glow);}
+.podium-label{font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+.players-table{width:100%;border-collapse:collapse;}
+.players-table th{padding:10px 12px;text-align:left;font-size:0.78rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.players-table td{padding:10px 12px;border-bottom:1px solid rgba(74,0,128,0.3);font-size:0.92rem;vertical-align:middle;}
+.players-table tr:last-child td{border-bottom:none;}
+.players-table tr:hover td{background:rgba(124,0,204,0.08);}
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.stat-box{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:100px;text-align:center;}
+.stat-num{font-family:'Metal Mania',cursive;font-size:1.8rem;color:var(--purple-bright);text-shadow:0 0 15px var(--purple-accent);}
+.stat-label{font-size:0.75rem;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-top:2px;}
+.alert{padding:14px 18px;border-radius:8px;margin-bottom:16px;font-size:0.92rem;line-height:1.5;}
+.alert-success{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--green-ok);}
+.alert-warning{background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);color:#ffc107;}
+.alert-danger{background:rgba(255,44,44,0.1);border:1px solid rgba(255,44,44,0.3);color:var(--red-err);}
+.alert-info{background:rgba(160,32,240,0.1);border:1px solid var(--border);color:var(--purple-glow);}
+.pix-box{background:rgba(0,0,0,0.4);border:1px solid var(--purple-accent);border-radius:10px;padding:18px;text-align:center;margin:14px 0;}
+.pix-key{font-family:'Share Tech Mono',monospace;font-size:1.2rem;color:var(--purple-bright);letter-spacing:3px;word-break:break-all;}
+.rules-box{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:18px;font-size:0.9rem;line-height:1.8;white-space:pre-line;}
+.vacancy-bar{background:rgba(0,0,0,0.4);border-radius:20px;height:10px;overflow:hidden;margin:8px 0;}
+.vacancy-fill{height:100%;background:linear-gradient(90deg,var(--purple-accent),var(--purple-bright));border-radius:20px;transition:width .4s;}
+.confirmed-notice{background:linear-gradient(135deg,rgba(124,0,204,0.3),rgba(30,0,48,0.9));border:2px solid var(--purple-bright);border-radius:12px;padding:24px;text-align:center;box-shadow:var(--glow-strong);}
+.confirmed-notice .big{font-family:'Metal Mania',cursive;font-size:1.5rem;color:var(--purple-bright);text-shadow:0 0 20px var(--purple-bright);}
+.section-title{font-family:'Metal Mania',cursive;font-size:1.3rem;color:var(--purple-glow);margin-bottom:14px;letter-spacing:2px;}
+.nav-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.code-box{background:rgba(0,0,0,0.6);border:1px solid var(--purple-accent);border-radius:8px;padding:14px;font-family:'Share Tech Mono',monospace;font-size:1.1rem;color:var(--purple-bright);text-align:center;letter-spacing:4px;}
+.scroll-area{overflow-y:auto;max-height:420px;padding-right:4px;}
+.kills-input{width:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-family:'Rajdhani',sans-serif;font-size:1rem;text-align:center;outline:none;}
+.kills-input:focus{border-color:var(--purple-bright);}
+.rank-item{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(74,0,128,0.3);}
+.rank-pos-num{font-family:'Metal Mania',cursive;font-size:1.1rem;min-width:28px;text-align:center;}
+.rank-name{flex:1;font-size:0.95rem;}
+.rank-wins{font-family:'Share Tech Mono',monospace;color:var(--purple-bright);}
+.footer{text-align:center;padding:20px;color:var(--text-dim);font-size:0.78rem;letter-spacing:1px;}
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;background:var(--purple-deep);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px;}
+#loading-overlay .spin{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--purple-bright);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.pulse{animation:pulse 2s infinite;}
+@media(max-width:600px){
+  .screen{padding:12px;}
+  .card{padding:16px;}
+  .tabs{gap:3px;}
+  .tab-btn{padding:8px 6px;font-size:0.75rem;}
+  .stats-row{gap:8px;}
+  .podium-card{min-width:90px;padding:10px 10px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-overlay">
+  <div class="spin"></div>
+  <div style="color:var(--purple-glow);font-family:'Metal Mania',cursive;font-size:1.2rem;letter-spacing:3px;">Carregando...</div>
+</div>
+
+<div id="app">
+
+<!-- ═══ LOGIN ═══ -->
+<div id="screen-login" class="screen">
+  <div class="site-header">
+    <div class="site-title">Diarik d3 Brawl</div>
+    <div class="site-subtitle pulse">💜 Torneio Oficial 💜</div>
+  </div>
+  <div class="card">
+    <div class="section-title">🔐 Entrar na conta</div>
+    <div class="form-group">
+      <label>Telefone (sua senha)</label>
+      <input type="tel" id="login-phone" placeholder="Ex: 11999998888" maxlength="20">
+    </div>
+    <div id="login-error" class="alert alert-danger" style="display:none"></div>
+    <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+    <hr class="divider">
+    <div style="text-align:center;color:var(--text-dim);font-size:0.88rem;margin-bottom:12px;">Ainda não tem conta?</div>
+    <button class="btn btn-secondary" onclick="showScreen('screen-register')">Criar conta</button>
+    <hr class="divider">
+    <button class="btn btn-secondary" style="border-color:rgba(160,32,240,0.4);color:var(--purple-glow);" onclick="showScreen('screen-admin-login')">👑 Acesso Administrador</button>
+  </div>
+  <div class="footer">Diarik d3 Brawl © 2025</div>
+</div>
+
+<!-- ═══ REGISTER ═══ -->
+<div id="screen-register" class="screen">
+  <div class="site-header">
+    <div class="site-title">Diarik d3 Brawl</div>
+    <div class="site-subtitle">💜 Criar Conta 💜</div>
+  </div>
+  <div class="card">
+    <div class="section-title">📋 Nova conta</div>
+    <div class="form-group">
+      <label>Seu nome</label>
+      <input type="text" id="reg-name" placeholder="Nome completo">
+    </div>
+    <div class="form-group">
+      <label>Nick do jogo</label>
+      <input type="text" id="reg-nick" placeholder="Seu nick no Brawl Stars">
+    </div>
+    <div class="form-group">
+      <label>Telefone (será sua senha)</label>
+      <input type="tel" id="reg-phone" placeholder="Ex: 11999998888" maxlength="20">
+    </div>
+    <div id="reg-error" class="alert alert-danger" style="display:none"></div>
+    <button class="btn btn-primary" onclick="doRegister()">Criar conta</button>
+    <hr class="divider">
+    <button class="btn btn-secondary" onclick="showScreen('screen-login')">← Voltar</button>
+  </div>
+</div>
+
+<!-- ═══ ADMIN LOGIN ═══ -->
+<div id="screen-admin-login" class="screen">
+  <div class="site-header">
+    <div class="site-title">Diarik d3 Brawl</div>
+    <div class="site-subtitle">👑 Painel Admin 👑</div>
+  </div>
+  <div class="card">
+    <div class="section-title">🔐 Login Administrador</div>
+    <div class="form-group">
+      <label>E-mail</label>
+      <input type="email" id="admin-email" placeholder="admin@email.com">
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="admin-pass" placeholder="Senha">
+    </div>
+    <div id="admin-login-error" class="alert alert-danger" style="display:none"></div>
+    <button class="btn btn-primary" onclick="doAdminLogin()">Entrar como Admin</button>
+    <hr class="divider">
+    <button class="btn btn-secondary" onclick="showScreen('screen-login')">← Voltar</button>
+  </div>
+</div>
+
+<!-- ═══ PLAYER ═══ -->
+<div id="screen-player" class="screen">
+  <div class="site-header">
+    <div class="site-title">Diarik d3 Brawl</div>
+    <div class="site-subtitle pulse">💜 DIÁRIO ABERTO 💜</div>
+  </div>
+  <div style="width:100%;max-width:700px;">
+    <div class="nav-bar">
+      <button class="btn btn-secondary btn-sm" id="ptab-home" onclick="playerTab('tab-home')">🏠 Início</button>
+      <button class="btn btn-secondary btn-sm" id="ptab-tournament" onclick="playerTab('tab-tournament')">🏆 Torneio</button>
+      <button class="btn btn-secondary btn-sm" id="ptab-rank" onclick="playerTab('tab-rank')">🌍 Rank Global</button>
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="doLogout()">Sair</button>
+    </div>
+
+    <div id="tab-home">
+      <div id="player-status-box"></div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num" id="stat-players">0</div><div class="stat-label">Inscritos</div></div>
+        <div class="stat-box"><div class="stat-num">10</div><div class="stat-label">Vagas</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-vacancies">10</div><div class="stat-label">Disponíveis</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--text-dim);margin-bottom:8px;">
+          <span>Vagas preenchidas</span><span id="vacancy-text">0/10</span>
+        </div>
+        <div class="vacancy-bar"><div class="vacancy-fill" id="vacancy-fill" style="width:0%"></div></div>
+      </div>
+      <div class="card" id="group-code-box" style="display:none;margin-bottom:14px;">
+        <div class="section-title">📲 Código do Grupo</div>
+        <div class="code-box" id="group-code-display">—</div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="section-title">🏆 Pódio Atual</div>
+        <div class="podium-row" id="podium-display"><div style="color:var(--text-dim);font-size:0.9rem;padding:10px;">Carregando...</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="section-title">🎮 Jogadores confirmados</div>
+        <div id="confirmed-list"></div>
+      </div>
+    </div>
+
+    <div id="tab-tournament" style="display:none">
+      <div id="tournament-content"></div>
+    </div>
+
+    <div id="tab-rank" style="display:none">
+      <div class="card">
+        <div class="section-title">🌍 Rank Global de Vitórias</div>
+        <div id="global-rank-list"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Diarik d3 Brawl © 2025</div>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div id="screen-admin" class="screen">
+  <div class="site-header">
+    <div class="site-title">Diarik d3 Brawl</div>
+    <div class="site-subtitle">👑 Painel Administrador</div>
+  </div>
+  <div style="width:100%;max-width:980px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <span id="admin-greeting" style="color:var(--purple-glow);font-weight:700;font-size:1rem;"></span>
+      <button class="btn btn-secondary btn-sm" onclick="doLogout()">Sair</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="abt-players" onclick="adminTab('atab-players')">👥 Jogadores</button>
+      <button class="tab-btn" id="abt-pix" onclick="adminTab('atab-pix')">💸 Pix</button>
+      <button class="tab-btn" id="abt-kills" onclick="adminTab('atab-kills')">💀 Vitórias</button>
+      <button class="tab-btn" id="abt-group" onclick="adminTab('atab-group')">📲 Grupo</button>
+      <button class="tab-btn" id="abt-reset" onclick="adminTab('atab-reset')">🔄 Reset</button>
+    </div>
+
+    <div id="atab-players">
+      <div class="card card-wide">
+        <div class="section-title">👥 Jogadores cadastrados</div>
+        <div class="scroll-area">
+          <table class="players-table">
+            <thead><tr><th>Nick</th><th>Nome</th><th>Telefone</th><th>Status</th><th>Vitórias</th><th>Ações</th></tr></thead>
+            <tbody id="admin-players-body"><tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="atab-pix" style="display:none">
+      <div class="card">
+        <div class="section-title">💸 Chave Pix dos jogadores</div>
+        <div class="alert alert-info" style="margin-bottom:16px;">O que você salvar aqui aparece para os jogadores na tela de pagamento.</div>
+        <div class="form-group"><label>Chave Pix</label><input type="text" id="pix-key-input" placeholder="Ex: 11999998888"></div>
+        <button class="btn btn-primary" onclick="savePixKey()">Salvar chave Pix</button>
+        <div id="pix-save-msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div id="atab-kills" style="display:none">
+      <div class="card card-wide">
+        <div class="section-title">💀 Editar Vitórias</div>
+        <div class="scroll-area">
+          <table class="players-table">
+            <thead><tr><th>Nick</th><th>Nome</th><th>Vitórias torneio</th><th>Salvar</th></tr></thead>
+            <tbody id="kills-body"><tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:20px;">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="atab-group" style="display:none">
+      <div class="card">
+        <div class="section-title">📲 Código do Grupo</div>
+        <div class="alert alert-info" style="margin-bottom:16px;">Só aparece para jogadores com pagamento confirmado.</div>
+        <div class="form-group"><label>Código do grupo</label><input type="text" id="group-code-input" placeholder="Ex: ABC123XY"></div>
+        <button class="btn btn-primary" onclick="saveGroupCode()">Salvar código</button>
+        <div id="group-save-msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <div id="atab-reset" style="display:none">
+      <div class="card">
+        <div class="section-title">🔄 Resetar Torneio</div>
+        <div class="alert alert-warning" style="margin-bottom:16px;">⚠️ Remove todos os pagamentos e zera vitórias do torneio atual. O histórico permanente e o rank global são preservados.</div>
+        <button class="btn btn-danger" onclick="resetTournament()">🔄 Resetar torneio agora</button>
+        <div id="reset-msg" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Diarik d3 Brawl © 2025</div>
+</div>
+
+</div><!-- /app -->
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, onValue, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDPyQd2N6-FOQkG45-qRswLna1odWmDPGk",
+  authDomain: "diarik-d3-brawl.firebaseapp.com",
+  databaseURL: "https://diarik-d3-brawl-default-rtdb.firebaseio.com",
+  projectId: "diarik-d3-brawl",
+  storageBucket: "diarik-d3-brawl.firebasestorage.app",
+  messagingSenderId: "942091287218",
+  appId: "1:942091287218:web:a9a704009af4854b57a7ab"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+// ─── helpers ───
+const dbRef = (path) => ref(db, path);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const phoneKey = p => p.replace(/\D/g,'');
+
+const ADMINS = [
+  {email:'murillo@gmail.com', pass:'Ghf45', name:'Murillo'},
+  {email:'felipe@gmail.com',  pass:'FTTRG34', name:'Felipe'}
+];
+
+let currentUser = null;  // {phone, nick, name, ...} or {admin:true, name}
+let unsubscribers = [];
+
+// ─── screens ───
+window.showScreen = function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+};
+
+// ─── init ───
+document.addEventListener('DOMContentLoaded', async ()=>{
+  document.getElementById('loading-overlay').style.display='flex';
+  // small delay so Firebase connects
+  setTimeout(()=>{
+    document.getElementById('loading-overlay').style.display='none';
+    showScreen('screen-login');
+  }, 1200);
+});
+
+// ════════════════════ AUTH ════════════════════
+window.doRegister = async function(){
+  const name  = document.getElementById('reg-name').value.trim();
+  const nick  = document.getElementById('reg-nick').value.trim();
+  const phone = phoneKey(document.getElementById('reg-phone').value);
+  const err   = document.getElementById('reg-error');
+  if(!name||!nick||!phone){err.textContent='Preencha todos os campos.';err.style.display='';return;}
+  if(phone.length<8){err.textContent='Telefone inválido.';err.style.display='';return;}
+
+  const snap = await get(dbRef('users/'+phone));
+  if(snap.exists()){err.textContent='Esse telefone já está cadastrado.';err.style.display='';return;}
+
+  // check nick unique
+  const allSnap = await get(dbRef('users'));
+  if(allSnap.exists()){
+    const all = Object.values(allSnap.val());
+    if(all.find(u=>u.nick&&u.nick.toLowerCase()===nick.toLowerCase())){
+      err.textContent='Esse nick já existe.';err.style.display='';return;
+    }
+  }
+
+  await set(dbRef('users/'+phone),{name,nick,phone,status:'none',kills:0,globalWins:0,banned:false,joinedAt:Date.now()});
+  err.style.display='none';
+  ['reg-name','reg-nick','reg-phone'].forEach(id=>document.getElementById(id).value='');
+  alert('✅ Conta criada! Faça login com seu telefone.');
+  showScreen('screen-login');
+};
+
+window.doLogin = async function(){
+  const phone = phoneKey(document.getElementById('login-phone').value);
+  const err   = document.getElementById('login-error');
+  if(!phone){err.textContent='Digite seu telefone.';err.style.display='';return;}
+
+  const snap = await get(dbRef('users/'+phone));
+  if(!snap.exists()){err.textContent='Número não encontrado.';err.style.display='';return;}
+  const user = snap.val();
+  if(user.banned){err.textContent='Sua conta foi banida. Contate o administrador.';err.style.display='';return;}
+
+  err.style.display='none';
+  currentUser = user;
+  document.getElementById('login-phone').value='';
+  showPlayerDashboard();
+};
+
+window.doAdminLogin = function(){
+  const email = document.getElementById('admin-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('admin-pass').value;
+  const err   = document.getElementById('admin-login-error');
+  const admin = ADMINS.find(a=>a.email===email&&a.pass===pass);
+  if(!admin){err.textContent='E-mail ou senha inválidos.';err.style.display='';return;}
+  err.style.display='none';
+  currentUser = {admin:true, name:admin.name, email:admin.email};
+  document.getElementById('admin-email').value='';
+  document.getElementById('admin-pass').value='';
+  document.getElementById('admin-greeting').textContent='👑 Olá, '+admin.name+'!';
+  unsubAll();
+  adminTab('atab-players');
+  showScreen('screen-admin');
+};
+
+window.doLogout = function(){
+  unsubAll();
+  currentUser = null;
+  showScreen('screen-login');
+};
+
+// ════════════════════ REALTIME LISTENERS ════════════════════
+function unsubAll(){ unsubscribers.forEach(u=>u()); unsubscribers=[]; }
+
+function listenUsers(cb){
+  const unsub = onValue(dbRef('users'), snap=>{
+    cb(snap.exists() ? snap.val() : {});
+  });
+  unsubscribers.push(unsub);
+}
+function listenSettings(cb){
+  const unsub = onValue(dbRef('settings'), snap=>{
+    cb(snap.exists() ? snap.val() : {});
+  });
+  unsubscribers.push(unsub);
+}
+function listenHistory(cb){
+  const unsub = onValue(dbRef('confirmedHistory'), snap=>{
+    cb(snap.exists() ? snap.val() : {});
+  });
+  unsubscribers.push(unsub);
+}
+
+// ════════════════════ PLAYER DASHBOARD ════════════════════
+function showPlayerDashboard(){
+  unsubAll();
+  showScreen('screen-player');
+  playerTab('tab-home');
+
+  // Live users
+  listenUsers(usersObj=>{
+    const users = Object.values(usersObj);
+    const approved = users.filter(u=>u.status==='approved'&&!u.banned);
+    const count = approved.length;
+    const avail = Math.max(0,10-count);
+
+    const sp=document.getElementById('stat-players');
+    const sv=document.getElementById('stat-vacancies');
+    const vt=document.getElementById('vacancy-text');
+    const vf=document.getElementById('vacancy-fill');
+    if(sp) sp.textContent=count;
+    if(sv) sv.textContent=avail;
+    if(vt) vt.textContent=count+'/10';
+    if(vf) vf.style.width=(count/10*100)+'%';
+
+    // refresh current user data
+    if(currentUser&&currentUser.phone&&usersObj[currentUser.phone]){
+      currentUser = usersObj[currentUser.phone];
+    }
+    renderStatusBox();
+    renderPodium(approved);
+  });
+
+  // Live settings (pix, group code)
+  listenSettings(settings=>{
+    renderGroupCode(settings);
+  });
+
+  // Live history
+  listenHistory(history=>{
+    renderConfirmedList(history);
+  });
+}
+
+function renderStatusBox(){
+  const box=document.getElementById('player-status-box');
+  if(!box||!currentUser) return;
+  const u=currentUser;
+  if(u.status==='approved'){
+    get(dbRef('settings/pixKey')).then(s=>{
+      const pix=s.val()||'';
+      box.innerHTML=`<div class="confirmed-notice" style="margin-bottom:14px;">
+        <div class="big">🚨💜 CONTA CONFIRMADA 💜🚨</div>
+        <p style="margin-top:12px;color:var(--text);line-height:1.7;">Mande os vídeos de kills para o WhatsApp<br>
+        <strong style="color:var(--purple-bright);font-size:1.1rem;">📱 ${esc(pix||'—')}</strong></p>
+      </div>`;
+    });
+  } else if(u.status==='pending'){
+    box.innerHTML=`<div class="alert alert-warning" style="margin-bottom:14px;">⏳ Aguardando confirmação do administrador...</div>`;
+  } else {
+    box.innerHTML='';
+  }
+}
+
+function renderPodium(approved){
+  const pd=document.getElementById('podium-display');
+  if(!pd) return;
+  const sorted=[...approved].sort((a,b)=>b.kills-a.kills).slice(0,3);
+  if(sorted.length===0){pd.innerHTML='<div style="color:var(--text-dim);font-size:0.9rem;padding:10px;">Nenhum jogador inscrito ainda.</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  const cls=['gold','silver','bronze'];
+  pd.innerHTML=sorted.map((u,i)=>`
+    <div class="podium-card ${cls[i]}">
+      <div class="podium-pos">${medals[i]}</div>
+      <div class="podium-name">${esc(u.nick)}</div>
+      <div class="podium-kills">${u.kills||0}</div>
+      <div class="podium-label">vitórias</div>
+    </div>`).join('');
+}
+
+function renderGroupCode(settings){
+  const box=document.getElementById('group-code-box');
+  const disp=document.getElementById('group-code-display');
+  if(!box||!disp||!currentUser) return;
+  const code=settings.groupCode||'';
+  if(currentUser.status==='approved'&&code){
+    box.style.display='';
+    disp.textContent=code;
+  } else {
+    box.style.display='none';
+  }
+}
+
+function renderConfirmedList(history){
+  const el=document.getElementById('confirmed-list');
+  if(!el) return;
+  const list=Object.values(history).sort((a,b)=>b.wins-a.wins);
+  if(list.length===0){el.innerHTML='<div style="color:var(--text-dim);padding:8px 0;">Nenhum jogador confirmado ainda.</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=list.map((u,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(74,0,128,0.25);">
+      <span style="font-family:'Metal Mania',cursive;font-size:1rem;min-width:28px;text-align:center;color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text-dim)'};">
+        ${medals[i]||('#'+(i+1))}
+      </span>
+      <div style="flex:1;color:var(--purple-glow);font-size:1rem;font-weight:700;">@${esc(u.nick)}</div>
+      <div style="text-align:right;">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--purple-bright);font-weight:700;">${u.wins||0}</span>
+        <span style="color:var(--text-dim);font-size:0.78rem;margin-left:4px;">vitórias</span>
+      </div>
+    </div>`).join('');
+}
+
+// ════════════════════ PLAYER TABS ════════════════════
+window.playerTab = function(id){
+  ['tab-home','tab-tournament','tab-rank'].forEach(t=>{
+    document.getElementById(t).style.display=t===id?'':'none';
+  });
+  if(id==='tab-tournament') renderTournamentContent();
+  if(id==='tab-rank') renderGlobalRank();
+};
+
+async function renderTournamentContent(){
+  const tc=document.getElementById('tournament-content');
+  if(!tc||!currentUser) return;
+
+  const snap = await get(dbRef('users/'+currentUser.phone));
+  const u = snap.exists() ? snap.val() : currentUser;
+  currentUser = u;
+
+  const pixSnap = await get(dbRef('settings/pixKey'));
+  const pix = pixSnap.val()||'';
+
+  if(u.banned){tc.innerHTML=`<div class="alert alert-danger">🚫 Sua conta foi banida.</div>`;return;}
+
+  if(u.status==='approved'){
+    tc.innerHTML=`<div class="confirmed-notice">
+      <div class="big">🚨💜 CONTA CONFIRMADA 💜🚨</div>
+      <p style="margin-top:12px;color:var(--text);line-height:1.7;">Mande os vídeos de kills para o WhatsApp<br>
+      <strong style="color:var(--purple-bright);font-size:1.1rem;">📱 ${esc(pix||'—')}</strong></p>
+    </div>`;
+    return;
+  }
+  if(u.status==='pending'){
+    tc.innerHTML=`<div class="alert alert-warning">⏳ <strong>Pagamento enviado.</strong> Aguardando confirmação do administrador.</div>`;
+    return;
+  }
+
+  const allSnap = await get(dbRef('users'));
+  const allUsers = allSnap.exists() ? Object.values(allSnap.val()) : [];
+  const approvedCount = allUsers.filter(x=>x.status==='approved'&&!x.banned).length;
+  const slots = Math.max(0,10-approvedCount);
+
+  tc.innerHTML=`
+  <div class="card" style="margin-bottom:14px;">
+    <div class="rules-box">🎟️ Inscrição: R$ 5,00
+💀 Kill: R$ 2,50
+🏆 1º Lugar: R$ 10,00
+${approvedCount} inscritos ━━━━━━━━━━━━━━━
+🚫 REGRAS 🚫
+━━━━━━━━━━━━━━━
+❌ Proibido usar:
+• Sirius  • Cordelius  • Lily  • Touro
+• Edgar  • Uniforme  • Colette  • Times (dupla/trio)
+⚠️ Se usar, será desclassificado e sem reembolso!
+━━━━━━━━━━━━━━━
+📥 COMO PARTICIPAR 📥
+━━━━━━━━━━━━━━━
+💰 Realize o pagamento
+📩 Envie o comprovante para o ADM
+⏳ Aguarde o link da sala no WhatsApp
+⚠️ Atrasos não terão reembolso!</div>
+  </div>
+  ${slots===0?'<div class="alert alert-danger">🚫 Torneio lotado!</div>':''}
+  ${slots>0?`<div class="card">
+    <div class="section-title">💸 Realizar Pagamento</div>
+    ${pix?`
+    <div class="pix-box">
+      <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:6px;">Chave Pix:</div>
+      <div class="pix-key">${esc(pix)}</div>
+    </div>
+    <div class="alert alert-warning">⚠️ Realize o pagamento e clique em confirmar.</div>
+    <button class="btn btn-gold" onclick="confirmPayment()">✅ Confirmei o pagamento</button>
+    `:`<div class="alert alert-info">⏳ Chave Pix não disponível. Aguarde o administrador.</div>`}
+  </div>`:''}`;
+}
+
+window.confirmPayment = async function(){
+  if(!currentUser) return;
+  await update(dbRef('users/'+currentUser.phone),{status:'pending'});
+  currentUser.status='pending';
+  renderTournamentContent();
+};
+
+async function renderGlobalRank(){
+  const el=document.getElementById('global-rank-list');
+  if(!el) return;
+  const snap = await get(dbRef('confirmedHistory'));
+  if(!snap.exists()){el.innerHTML='<div style="color:var(--text-dim);padding:10px;">Nenhuma vitória registrada ainda.</div>';return;}
+  const list=Object.values(snap.val()).filter(u=>u.wins>0).sort((a,b)=>b.wins-a.wins);
+  if(list.length===0){el.innerHTML='<div style="color:var(--text-dim);padding:10px;">Nenhuma vitória registrada ainda.</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  el.innerHTML=list.map((u,i)=>`
+    <div class="rank-item">
+      <div class="rank-pos-num" style="color:${i===0?'var(--gold)':i===1?'var(--silver)':i===2?'var(--bronze)':'var(--text-dim)'};">${medals[i]||('#'+(i+1))}</div>
+      <div class="rank-name"><span style="color:var(--purple-glow);">@${esc(u.nick)}</span> <span style="color:var(--text-dim);font-size:0.8rem;">${esc(u.name)}</span></div>
+      <div class="rank-wins">${u.wins} 🏆</div>
+    </div>`).join('');
+}
+
+// ════════════════════ ADMIN TABS ════════════════════
+window.adminTab = function(id){
+  ['atab-players','atab-pix','atab-kills','atab-group','atab-reset'].forEach(t=>{
+    document.getElementById(t).style.display=t===id?'':'none';
+  });
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const map={'atab-players':'abt-players','atab-pix':'abt-pix','atab-kills':'abt-kills','atab-group':'abt-group','atab-reset':'abt-reset'};
+  if(map[id]) document.getElementById(map[id]).classList.add('active');
+  if(id==='atab-players') renderAdminPlayers();
+  if(id==='atab-kills') renderKillsEditor();
+  if(id==='atab-pix') get(dbRef('settings/pixKey')).then(s=>{ document.getElementById('pix-key-input').value=s.val()||''; });
+  if(id==='atab-group') get(dbRef('settings/groupCode')).then(s=>{ document.getElementById('group-code-input').value=s.val()||''; });
+};
+
+async function renderAdminPlayers(){
+  const tbody=document.getElementById('admin-players-body');
+  if(!tbody) return;
+  const snap = await get(dbRef('users'));
+  if(!snap.exists()){tbody.innerHTML='<tr><td colspan="6" style="color:var(--text-dim);text-align:center;padding:20px;">Nenhum jogador cadastrado.</td></tr>';return;}
+  const users=Object.values(snap.val());
+  tbody.innerHTML=users.map(u=>`
+    <tr>
+      <td><span style="color:var(--purple-glow);">@${esc(u.nick)}</span></td>
+      <td>${esc(u.name)}</td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:0.82rem;">${esc(u.phone)}</td>
+      <td>${statusBadge(u)}</td>
+      <td style="text-align:center;">${u.kills||0}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          ${u.status==='pending'?`
+            <button class="btn btn-success btn-xs" onclick="adminApprove('${esc(u.phone)}')">✅ Aprovar</button>
+            <button class="btn btn-danger btn-xs" onclick="adminReject('${esc(u.phone)}')">❌ Recusar</button>`:''}
+          ${!u.banned
+            ?`<button class="btn btn-danger btn-xs" onclick="adminBan('${esc(u.phone)}')">🚫 Banir</button>`
+            :`<button class="btn btn-secondary btn-xs" onclick="adminUnban('${esc(u.phone)}')">🔓 Desbanir</button>`}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function statusBadge(u){
+  if(u.banned) return '<span class="badge badge-banned">Banido</span>';
+  if(u.status==='approved') return '<span class="badge badge-approved">Confirmado</span>';
+  if(u.status==='pending') return '<span class="badge badge-pending">Pendente</span>';
+  return '<span class="badge badge-waiting">Aguardando</span>';
+}
+
+window.adminApprove = async function(phone){
+  await update(dbRef('users/'+phone),{status:'approved',approvedAt:Date.now()});
+  const snap = await get(dbRef('users/'+phone));
+  const u = snap.val();
+  // upsert permanent history
+  const hSnap = await get(dbRef('confirmedHistory/'+phone));
+  const existing = hSnap.exists() ? hSnap.val() : {};
+  await set(dbRef('confirmedHistory/'+phone),{
+    nick: u.nick, name: u.name,
+    wins: existing.wins||u.globalWins||0
+  });
+  renderAdminPlayers();
+};
+
+window.adminReject = async function(phone){
+  await update(dbRef('users/'+phone),{status:'none'});
+  renderAdminPlayers();
+};
+
+window.adminBan = async function(phone){
+  if(!confirm('Banir este jogador? Ele perderá o lugar no pódio.')) return;
+  await update(dbRef('users/'+phone),{banned:true,status:'none',kills:0});
+  renderAdminPlayers();
+};
+
+window.adminUnban = async function(phone){
+  await update(dbRef('users/'+phone),{banned:false});
+  renderAdminPlayers();
+};
+
+// ════════════════════ KILLS / VITÓRIAS ════════════════════
+async function renderKillsEditor(){
+  const tbody=document.getElementById('kills-body');
+  if(!tbody) return;
+  const snap = await get(dbRef('users'));
+  if(!snap.exists()){tbody.innerHTML='<tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:20px;">Nenhum jogador.</td></tr>';return;}
+  const active=Object.values(snap.val()).filter(u=>!u.banned&&u.status==='approved');
+  if(active.length===0){tbody.innerHTML='<tr><td colspan="4" style="color:var(--text-dim);text-align:center;padding:20px;">Nenhum jogador ativo.</td></tr>';return;}
+  tbody.innerHTML=active.map(u=>`
+    <tr>
+      <td><span style="color:var(--purple-glow);">@${esc(u.nick)}</span></td>
+      <td>${esc(u.name)}</td>
+      <td><input type="number" class="kills-input" id="ki-${esc(u.phone)}" value="${u.kills||0}" min="0"></td>
+      <td><button class="btn btn-success btn-xs" onclick="saveKills('${esc(u.phone)}')">💾 Salvar</button></td>
+    </tr>`).join('');
+}
+
+window.saveKills = async function(phone){
+  const inp=document.getElementById('ki-'+phone);
+  if(!inp) return;
+  const val=Math.max(0,parseInt(inp.value)||0);
+  const snap = await get(dbRef('users/'+phone));
+  const u = snap.val();
+  const oldKills = u.kills||0;
+  const diff = val - oldKills;
+  const newGlobal = Math.max(0,(u.globalWins||0)+Math.max(0,diff));
+  await update(dbRef('users/'+phone),{kills:val, globalWins:newGlobal});
+  // Update permanent history
+  const hSnap = await get(dbRef('confirmedHistory/'+phone));
+  if(hSnap.exists()){
+    await update(dbRef('confirmedHistory/'+phone),{wins:newGlobal});
+  }
+  alert('✅ Vitórias de @'+u.nick+' atualizadas para '+val+'!');
+  renderKillsEditor();
+};
+
+// ════════════════════ PIX / GROUP ════════════════════
+window.savePixKey = async function(){
+  const val=document.getElementById('pix-key-input').value.trim();
+  await set(dbRef('settings/pixKey'),val);
+  const msg=document.getElementById('pix-save-msg');
+  msg.innerHTML='<div class="alert alert-success">✅ Chave Pix salva!</div>';
+  setTimeout(()=>{msg.innerHTML='';},3000);
+};
+
+window.saveGroupCode = async function(){
+  const val=document.getElementById('group-code-input').value.trim();
+  await set(dbRef('settings/groupCode'),val);
+  const msg=document.getElementById('group-save-msg');
+  msg.innerHTML='<div class="alert alert-success">✅ Código salvo!</div>';
+  setTimeout(()=>{msg.innerHTML='';},3000);
+};
+
+// ════════════════════ RESET ════════════════════
+window.resetTournament = async function(){
+  if(!confirm('Tem certeza? Isso vai resetar todos os pagamentos e vitórias do torneio atual. O histórico permanente é preservado.')) return;
+  const snap = await get(dbRef('users'));
+  if(!snap.exists()){document.getElementById('reset-msg').innerHTML='<div class="alert alert-info">Nenhum jogador para resetar.</div>';return;}
+  const updates={};
+  Object.keys(snap.val()).forEach(phone=>{
+    updates['users/'+phone+'/status']='none';
+    updates['users/'+phone+'/kills']=0;
+  });
+  await update(ref(db),updates);
+  document.getElementById('reset-msg').innerHTML='<div class="alert alert-success">✅ Torneio resetado! Todos precisarão pagar novamente.</div>';
+};
+
+</script>
+</body>
+</html>
